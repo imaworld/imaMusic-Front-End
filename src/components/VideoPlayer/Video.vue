@@ -1,7 +1,7 @@
 <template>
     <div class="video">
         <youtube
-         :video-id="source"
+         :video-id="id"
          :player-vars="attrs" ref="youtube" 
          id="video-player"
          class="videoplayer" 
@@ -73,7 +73,8 @@ export default {
             timerTime: null,
             timer: null,
             timeEnd: false,
-            showTimer: false
+            showTimer: false,
+            id: null
         }
     },
     methods:{
@@ -145,11 +146,17 @@ export default {
         
     },
     mounted(){
+        this.id = this.source
         this.player.pauseVideo();
         this.$root.$on('playerPlay',()=>{
                 this.player.playVideo()
         });
-
+        this.$root.$on('setVideoToPlay', (id) => {
+            this.id = id
+            setTimeout( () => {
+                this.player.pauseVideo()
+            }, 0)
+        })
         this.$root.$on('pauseVideo', ()=> {
             this.player.pauseVideo();
         })
@@ -170,6 +177,9 @@ export default {
                     this.disabled = false
                 }
             });
+        setTimeout( () => {
+                this.player.pauseVideo()
+            }, 0)
     },
     computed: {
         player() {
@@ -201,6 +211,7 @@ export default {
             }
         },
         source () {
+            this.id = this.source
             localStorage.setItem('playingVideoId', this.source)
         }
 

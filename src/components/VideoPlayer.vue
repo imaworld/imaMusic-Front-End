@@ -39,7 +39,7 @@
                         <img style="width: 50%;margin: 0 auto;" src="@/assets/icons/nowPlayingIcon.png">
                     </div>
                     <div class="video-details" :title="video.title | requotes">
-                        <div class="play" @click="playVideo(video)">
+                        <div class="play" @click="playVideo(video, i)">
                             <img :alt="video.title" :src="require('@/assets/icons/play-button.svg')">
                         </div>
                         <div class="remove" v-on:click="removeFromPlaylist(i)" v-if="!disabled">
@@ -61,7 +61,7 @@
                         <img :src="video.thumbnail">
                     <p class="video-title" v-html="video.title"  ></p>
                         <div class="video-details" >
-                            <div class="play" @click="playVideo(video)">
+                            <div class="play" @click="playVideo(video, i)">
                                 <img :src="require('@/assets/icons/play-button.svg')">
                             </div>
                             <div class="remove" v-on:click="removeFromPlaylist(i)" v-if="!disabled">
@@ -103,8 +103,8 @@ export default {
         }
     },
     methods: {
-        playVideo(item){
-            this.checkPlayAllow(item.id)
+        playVideo(item, i){
+            this.checkPlayAllow(item.id, i)
             // this.$root.$emit('playerPlay')
         },
         removeFromPlaylist(i){
@@ -114,8 +114,8 @@ export default {
         searchVideo(title){
             this.$root.$emit('searchRelated', title)
         },
-        shuffle(array) {
-            array.sort(() => Math.random() - 0.5);
+        shuffle() {
+            this.playlists[this.playN].videos.sort(() => Math.random() - 0.5);
         },
         changePlaylist(){
             
@@ -153,17 +153,19 @@ export default {
                 console.log("Login Required to save", err)
             });
         },
-        checkPlayAllow(id) {
+        checkPlayAllow(id, i) {
             let date = new Date()
             let savedTimer = localStorage.getItem('SetTimer') ? localStorage.getItem('SetTimer') : null
             if (savedTimer && savedTimer !== 'null') {
                 let timerTime = Math.ceil((new Date(savedTimer).getTime() - date.getTime()) / 1000)
                 if(timerTime > 0) {
+                    this.currentPlay = i
                     this.playingVideoId = id
                     localStorage.setItem('playingVideoId', id)
                     this.id = id
                 }
             } else {
+                this.currentPlay = i
                 this.playingVideoId = id
                 localStorage.setItem('playingVideoId', id)
                 this.id = id
@@ -178,7 +180,7 @@ export default {
     watch: {
         playN (newValue, oldValue) {
             if(newValue !== oldValue) {
-                this.id = this.playlists[this.playN].videos[0].id
+                this.$root.$emit('setVideoToPlay', this.playlists[this.playN].videos[0].id)
                 this.playingVideoId = this.playlists[this.playN].videos[0].id
                 localStorage.setItem('playingVideoId', this.playlists[this.playN].videos[0].id)
             }
@@ -232,7 +234,7 @@ export default {
         })
         .then(function(response){
             self.playlists = JSON.parse(response.data)
-            self.playVideo(self.playlists[self.playN].videos[self.currentPlay])
+            self.playVideo(self.playlists[self.playN].videos[self.currentPlay], self.currentPlay)
         })
         .catch(function(err){
             console.log("Login Required to save")
@@ -240,7 +242,8 @@ export default {
         
         this.$root.$on('playNext',()=>{
             this.currentPlay += 1
-            this.playVideo(this.playlists[this.playN].videos[this.currentPlay])
+            console.log(this.currentPlay)
+            this.playVideo(this.playlists[this.playN].videos[this.currentPlay], this.currentPlay)
             if(this.currentPlay == this.playlists[this.playN].videos.length){
                 this.currentPlay = 0
             }
@@ -249,7 +252,7 @@ export default {
         this.$root.$on('playPrev',()=>{
             if(this.currentPlay > 0){    
                 this.currentPlay -= 1
-                this.playVideo(this.playlists[this.playN].videos[this.currentPlay])
+                this.playVideo(this.playlists[this.playN].videos[this.currentPlay], this.currentPlay)
             }
         });
 
@@ -266,7 +269,7 @@ export default {
         this.$root.$on('changePlaylist', (_)=>{
 
                 this.playN = this.playlists.findIndex(k => k.name == _ )
-                this.playVideo(this.playlists[this.playN].videos[this.currentPlay])
+                this.playVideo(this.playlists[this.playN].videos[this.currentPlay], this.currentPlay)
 
         });
 
@@ -284,7 +287,7 @@ export default {
                 self.playlists = JSON.parse(response.data)
                 self.currentPlay = 0
                 self.playN = 0
-                self.playVideo(self.playlists[self.playN].videos[self.currentPlay])
+                self.playVideo(self.playlists[self.playN].videos[self.currentPlay], self.currentPlay)
                 self.disabled = false
             })
             .catch(function(err){

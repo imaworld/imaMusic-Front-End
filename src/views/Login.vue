@@ -51,7 +51,7 @@ export default {
 					.then(function (response){
 						localStorage.setItem("Token",response.data)
 						self.$root.$emit('login', true)
-						window.location.href = '/'
+						window.location.href = '/musicify/'
 						// console.log(localStorage.Token)
 					})
 
