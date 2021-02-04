@@ -91,7 +91,7 @@ export default
 	methods: {
 		getData(){
 			axios
-		      .get(`http://47.75.187.3:8000/search/?query=${this.search}`)
+		      .get(`https://imasparkle.org:8443/search/?query=${this.search}`)
 		      .then(response => (this.results = response))
 		},
 		addToPlaylist(i){
@@ -121,7 +121,7 @@ export default
 		save(){
 			axios({
 			  method: 'post',
-			  url: 'http://47.75.187.3:8000/save/',
+			  url: 'https://imasparkle.org:8443/save/',
 			  data: this.playlist,
 			  headers:{
 			  	"Authorization" : "Token "+ localStorage.Token

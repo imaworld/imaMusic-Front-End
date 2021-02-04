@@ -62,7 +62,7 @@ export default {
 						axios({
 					
 						method: 'post',
-						url: `http://47.75.187.3:8000/register/`,
+						url: `https://imasparkle.org:8443/register/`,
 						data: {
 							'username':this.username,
 							'password':this.password,

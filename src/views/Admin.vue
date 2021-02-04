@@ -119,7 +119,7 @@
 			saveFeatured(){
 				axios({
 	              method: 'post',
-	              url: `http://47.75.187.3:8000/saveFeatured/`,
+	              url: `https://imasparkle.org:8443/saveFeatured/`,
 	              data: this.featured,
 	              headers:{
 	                "Authorization" : "Token "+ localStorage.Token
@@ -136,7 +136,7 @@
 				let self = this
 				let id  = this.youtube_parser(this.videolink)
 				axios
-			      .get(`http://47.75.187.3:8000/getvideo/?query=${id}`)
+			      .get(`https://imasparkle.org:8443/getvideo/?query=${id}`)
 			      .then(response => {
 			      	let video  = {
 			      		id :response.data[0].id,
@@ -186,7 +186,7 @@
 				let self = this
 				let id  = this.youtube_parser(this.videolink)
 				axios
-			      .get(`http://47.75.187.3:8000/getvideo/?query=${id}`)
+			      .get(`https://imasparkle.org:8443/getvideo/?query=${id}`)
 			      .then(response => {
 			      	let video  = {
 			      		id :response.data[0].id,
@@ -202,7 +202,7 @@
 			saveChannel(){
 				axios({
 	              method: 'post',
-	              url: `http://47.75.187.3:8000/saveChannel/`,
+	              url: `https://imasparkle.org:8443/saveChannel/`,
 	              data: this.channels,
 	              headers:{
 	                "Authorization" : "Token "+ localStorage.Token
@@ -235,7 +235,7 @@
         let self = this
         axios({
           method: 'post',
-          url: `http://47.75.187.3:8000/isadmin/`,
+          url: `https://imasparkle.org:8443/isadmin/`,
           data: 'isadmin',
           headers:{
             "Authorization" : "Token "+ localStorage.Token
@@ -254,7 +254,7 @@
 
 	    axios({
 	      method: 'post',
-	      url: `http://47.75.187.3:8000/featured/`,
+	      url: `https://imasparkle.org:8443/featured/`,
 	      data: '',
 	      headers:{
 	        "Authorization" : "Token "+ localStorage.Token
@@ -269,7 +269,7 @@
 
 	    axios({
 	      method: 'post',
-	      url: `http://47.75.187.3:8000/channels/`,
+	      url: `https://imasparkle.org:8443/channels/`,
 	      data: '',
 	      headers:{
 	        "Authorization" : "Token "+ localStorage.Token

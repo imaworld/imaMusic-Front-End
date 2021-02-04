@@ -11,21 +11,21 @@
 		</div> -->
 		<div class="search-block">
 			
-			<span v-if="search_state==0">
-				<input type="password" name="search" class="password-field" v-model="search_password_entered" placeholder="Enter Password To unlock">
+			<div style="width: 90%;" v-if="search_state==0">
+				<input type="password" name="search" class="password-field" @keyup.enter="checkPass" v-model="search_password_entered" placeholder="Enter Password To unlock">
 				<span class="lock-button-icon">
 					<img class="search-button" :src="lockedButton">
 				</span>
-			</span>
-			<span v-if="search_state==1">
-				<autocomplete :search="suggest" v-on:keyup.enter="getData" @submit="getData"></autocomplete>
+			</div>
+			<div style="width: 90%;" v-if="search_state==1">
+				<autocomplete width="100%" :search="suggest" @submit="getData"></autocomplete>
 				<div>
 					<!-- <input class="" type="text" name="search" v-model="search" :disabled="disabled" placeholder="search here..." v-on:keyup.enter="getData"> -->
 				</div>
 				<span class="search-button-icon"  v-if="search==''" @click="getData" :disabled="disabled"><img class="search-button" :src="require('@/assets/icons/search-button.svg')"></span>
 				<!-- <img class="link-button" :src="require('@/assets/icons/link-button.svg')" @click="linkVideo()"> -->
 				<img class="search-button" :src="lockedButton" @click="locksearch">
-			</span>
+			</div>
 		</div>
 		<div class="orderby" v-if="search!=''">
 			<span @click="changeOrder('relevance')">Relevance</span>
@@ -34,21 +34,23 @@
 		</div>
 		<div class="results-block">
 			<div class="search-results">
-    			<div class="search-results-block" v-for="(item, i) in searchResults.data" :key="i">
-        			<div class="thumbnail">
-            			<img :src="item.snippet.thumbnails.medium.url">
-        			</div>
-	        		<div class="details">
-	            		<div class="heading">{{item.snippet.title | requotes }}</div>
-		            	<div id="icon-pack">
-			                <span class="icons" @click="playVideo(item)">
-			                    <img :src="require('@/assets/icons/play-button.svg')">
-			                </span>
-			                <span class="icons" @click="addtoPlaylist(item)">
-			                    <img :src="require('@/assets/icons/add-button.svg')">
-			                </span>
-		            	</div>
-	        		</div>
+    			<div v-for="(item, i) in searchResults.data" :key="i">
+					<div class="search-results-block" v-if="!addedVideo.includes(item.id.videoId)">
+						<div class="thumbnail">
+							<img :src="item.snippet.thumbnails.medium.url">
+						</div>
+						<div class="details">
+							<div class="heading">{{item.snippet.title | requotes }}</div>
+							<div id="icon-pack">
+								<span class="icons" @click="playVideo(item)">
+									<img :src="require('@/assets/icons/play-button.svg')">
+								</span>
+								<span class="icons" @click="addtoPlaylist(item)">
+									<img :src="require('@/assets/icons/add-button.svg')">
+								</span>
+							</div>
+						</div>
+					</div>
     			</div>
 
     			<div class="show-more" @click="moreResults" v-if="isShowMore">
@@ -83,10 +85,10 @@
 				search_state: 0,
 				search_password_entered: '',
 				isSearch: 'search-show',
-				suggestions: []
+				suggestions: [],
+				addedVideo: [],
 			}
-		}
-		,
+		},
 		components: {
 			Autocomplete,
 			yauto
@@ -101,10 +103,10 @@
     	},
 		methods:{
 			getData(input){
-				if(this.search != ''){
+				if(this.search != '' || input){
 					
 					axios
-				      .get(`http://47.75.187.3:8000/search/?query=${this.search}&quatity=${this.quatity}&orderby=relevance`)
+				      .get(`https://imasparkle.org:8443/search/?query=${input ? input : this.search}&quatity=${this.quatity}&orderby=relevance`)
 				      .then(response => {
 				      	this.searchResults = response
 				      })	
@@ -133,7 +135,7 @@
 				    	this.searchResults.data.splice(i, 1); 
 				   }
 				}
-
+				this.addedVideo.push(item.id.videoId)
 				let video = {
 					'id': item.id.videoId,
 					'title': item.snippet.title,
@@ -149,7 +151,7 @@
 			changeOrder(order){
 				if(this.search != ''){
 					axios
-				      .get(`http://47.75.187.3:8000/search/?query=${this.search}&quatity=${this.quatity}&orderby=${order}`)
+				      .get(`https://imasparkle.org:8443/search/?query=${this.search}&quatity=${this.quatity}&orderby=${order}`)
 				      .then(response => (this.searchResults = response))			
 
 				    this.isShowMore = true	
@@ -160,7 +162,7 @@
 					let self = this
 					let id  = this.youtube_parser(this.search)
 					axios
-			      	.get(`http://47.75.187.3:8000/getvideo/?query=${id}`)
+			      	.get(`https://imasparkle.org:8443/getvideo/?query=${id}`)
 			      	.then(response => {
 			      		let video  = {
 			      		id :response.data[0].id,
@@ -197,6 +199,14 @@
 			},
 			closeSearch(){
 				this.$root.$emit('closeSearch')
+			},
+			checkPass () {
+				if(this.search_password_entered == this.search_password){
+					this.search_state = 1
+					this.lockedButton = require('@/assets/icons/unlocked-state.svg')
+					this.search_password_entered = ''
+					this.searchResults = {}
+				}
 			}
 		},
 		mounted(){
@@ -204,7 +214,7 @@
 			let self = this
         axios({
           method: 'post',
-          url: `http://47.75.187.3:8000/getsp/`,
+          url: `https://imasparkle.org:8443/getsp/`,
           data: '',
           headers:{
             "Authorization" : "Token "+ localStorage.Token
@@ -237,17 +247,17 @@
 				this.search = title
 				this.getData()
 			});			
-		},
-		watch: {
-			search_password_entered : function(val){
-				if(val == this.search_password){
-					this.search_state = 1
-					this.lockedButton = require('@/assets/icons/unlocked-state.svg')
-					this.search_password_entered = ''
-					this.searchResults = {}
-				}
-			}
 		}
+		// watch: {
+		// 	search_password_entered : function(val){
+		// 		if(val == this.search_password){
+		// 			this.search_state = 1
+		// 			this.lockedButton = require('@/assets/icons/unlocked-state.svg')
+		// 			this.search_password_entered = ''
+		// 			this.searchResults = {}
+		// 		}
+		// 	}
+		// }
 	};
 </script>
 
@@ -313,10 +323,10 @@ div.search div.search-block{
 	align-items: center;
 }
 
-div.search div  input{
+div.search div input{
 	background: #303030;
 	border: none;
-	padding: 3% 10%;
+	padding: 2% 10%;
 	font-size: 1.2em;
 	border-radius: 20px;
 	color: #FFF;
@@ -448,6 +458,7 @@ div.details{
 	position: absolute;
 	right: 3px;
 	top: 12px;
+	z-index: 10;
 	display: none;
 }
 

@@ -4,7 +4,6 @@
             <div class="video">
                 <video-window :source="id" :plStatus="isPlaylistChanged"></video-window>
             </div>
-
             <form class="playlist-select" v-on:submit.prevent v-if="!disabled">
                 <span v-if="addPlaylist==1">
                     <input type="text" name="addfeature" v-model="playlistname" class="playlist-add" placeholder="playlist name">
@@ -19,24 +18,29 @@
                     <!-- <img class="remove-icon" :src="require('@/assets/icons/remove-button.svg')" @click="removePlaylist"> -->
                     <button class="playlist-add-button" @click="addPlaylist=0">Cancel</button> 
                 </span>
-                <span v-else>
+                <span class="smallTxt" v-else>
                     <select class="select-channel" v-model="playN"  @click="changePlaylist">
                         <option :value="i"  v-for="(playlist,i) in playlists" :key="i" >{{playlist.name}}</option>
                     </select>
                     <!-- <img class="add-icon" :src="require('@/assets/icons/add-playlist-button.svg')" @click="addPlaylist=1"> -->
-                    <button class="playlist-add-button" @click="addPlaylist=1">Create a palylist</button>
+                    <button class="playlist-add-button" @click="addPlaylist=1" >Create a palylist</button>
+                    <button class="playlist-add-button" @click="savePlaylist" :class="[isPlaylistChanged === 1 ? 'redPlayList' : 'greenPlayList']">Save palylist</button>
                     <!-- <img class="remove-icon" :src="require('@/assets/icons/remove-button.svg')" @click="removePlaylist"> -->
                     <button class="playlist-add-button" @click="addPlaylist=-1">Remove</button>
                 </span>
             </form>
-
+                <set-time class="timer"/>
 
             <draggable v-model="playlists[playN].videos" class="playlist" @end="isPlaylistChanged=1">
                 <div class="video-item" v-for="(video,i) in playlists[playN].videos" :key="i">
                     <img :src="video.thumbnail">
-                    <div class="video-details"  :title="video.title | requotes">
+                    <p class="video-title" v-html="video.title"  ></p>
+                    <div class="video-playing" v-if="video.id === playingVideoId" >
+                        <img style="width: 50%;margin: 0 auto;" src="@/assets/icons/nowPlayingIcon.png">
+                    </div>
+                    <div class="video-details" :title="video.title | requotes">
                         <div class="play" @click="playVideo(video)">
-                            <img :src="require('@/assets/icons/play-button.svg')">
+                            <img :alt="video.title" :src="require('@/assets/icons/play-button.svg')">
                         </div>
                         <div class="remove" v-on:click="removeFromPlaylist(i)" v-if="!disabled">
                             <img :src="require('@/assets/icons/remove-button.svg')">
@@ -55,6 +59,7 @@
                 <draggable v-model="playlists[playN].videos" class="playlist" @end="isPlaylistChanged=1">
                     <div class="video-item" v-for="(video,i) in playlists[playN].videos" :key="i">
                         <img :src="video.thumbnail">
+                    <p class="video-title" v-html="video.title"  ></p>
                         <div class="video-details" >
                             <div class="play" @click="playVideo(video)">
                                 <img :src="require('@/assets/icons/play-button.svg')">
@@ -78,12 +83,13 @@
 import VideoWindow from './VideoPlayer/Video'
 import axios from 'axios'
 import draggable from 'vuedraggable'
+import SetTime from './setTime.vue';
 
 export default {
     name: 'video-player',
     data(){
         return{
-            id: '18OywdkVT2o',
+            id: null,
             playlists : [],
             isPlaylistChanged: 0,
             currentPlay: 0,
@@ -92,13 +98,14 @@ export default {
             addPlaylist: 0,
             playlistname: '',
             playlistHighlight: false,
-            currentHoverItem : ''
+            currentHoverItem : '',
+            playingVideoId: null
         }
     },
     methods: {
         playVideo(item){
-            this.id = item.id
-            this.$root.$emit('playerPlay')
+            this.checkPlayAllow(item.id)
+            // this.$root.$emit('playerPlay')
         },
         removeFromPlaylist(i){
             this.playlists[this.playN].videos.splice(i, 1);
@@ -111,7 +118,7 @@ export default {
             array.sort(() => Math.random() - 0.5);
         },
         changePlaylist(){
-
+            
         },
         addNewPlaylist(){
             let playlist  = {
@@ -129,13 +136,53 @@ export default {
             this.isPlaylistChanged = 1
             this.addPlaylist = 0
         },
+        savePlaylist() {
+            let self = this
+            axios({
+              method: 'post',
+              url: `https://imasparkle.org:8443/save/`,
+              data: this.playlists,
+              headers:{
+                "Authorization" : "Token "+ localStorage.Token
+              }
+            })
+            .then(function(response){
+                self.isPlaylistChanged = 0
+            })
+            .catch(function(err){
+                console.log("Login Required to save", err)
+            });
+        },
+        checkPlayAllow(id) {
+            let date = new Date()
+            let savedTimer = localStorage.getItem('SetTimer') ? localStorage.getItem('SetTimer') : null
+            if (savedTimer && savedTimer !== 'null') {
+                let timerTime = Math.ceil((new Date(savedTimer).getTime() - date.getTime()) / 1000)
+                if(timerTime > 0) {
+                    this.playingVideoId = id
+                    localStorage.setItem('playingVideoId', id)
+                    this.id = id
+                }
+            } else {
+                this.playingVideoId = id
+                localStorage.setItem('playingVideoId', id)
+                this.id = id
+            }
+        }
     },
     components: {
         'video-window' : VideoWindow,
-        draggable,
+        SetTime,
+        draggable
     },
-    created(){
-
+    watch: {
+        playN (newValue, oldValue) {
+            if(newValue !== oldValue) {
+                this.id = this.playlists[this.playN].videos[0].id
+                this.playingVideoId = this.playlists[this.playN].videos[0].id
+                localStorage.setItem('playingVideoId', this.playlists[this.playN].videos[0].id)
+            }
+        }
     },
 		filters:{
        	 requotes(val) {
@@ -146,9 +193,8 @@ export default {
         	}
     	},
     mounted(){
-
         let self = this
-
+        this.playingVideoId = localStorage.getItem('playingVideoId')
         this.$root.$on('shuffle', ()=>{
             this.shuffle(this.playlists[this.playN].videos)
             this.currentPlay = -1
@@ -156,7 +202,7 @@ export default {
 
 
         this.$root.$on('play',(id)=>{
-            this.id = id
+            this.checkPlayAllow(id)
         });
 
 
@@ -175,29 +221,10 @@ export default {
             }
         });
 
-        
-
-        this.$root.$on('savePlaylist', ()=>{
-
-            axios({
-              method: 'post',
-              url: `http://47.75.187.3:8000/save/`,
-              data: self.playlists,
-              headers:{
-                "Authorization" : "Token "+ localStorage.Token
-              }
-            })
-            .then(function(response){
-                self.isPlaylistChanged = 0
-            })
-            .catch(function(err){
-                console.log("Login Required to save")
-            });
-        });
 
         axios({
           method: 'post',
-          url: `http://47.75.187.3:8000/playlist/`,
+          url: `https://imasparkle.org:8443/playlist/`,
           data: '',
           headers:{
             "Authorization" : "Token "+ localStorage.Token
@@ -247,7 +274,7 @@ export default {
             let self = this
             axios({
               method: 'post',
-              url: `http://47.75.187.3:8000/playlist/`,
+              url: `https://imasparkle.org:8443/playlist/`,
               data: '',
               headers:{
                 "Authorization" : "Token "+ localStorage.Token
@@ -280,18 +307,23 @@ export default {
 
 
 .playlist{
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: repeat(8, 3vw);
-    width: 95%;
-    grid-gap:10px;
+    /* display: grid; */
+    /* grid-template-columns: repeat(4, 1fr); */
+    width: 100%;
+    /* grid-gap: 15px 10px; */
     padding: 10px;
     height: 250px;
     background: #535353;
     overflow-y: scroll;
     margin: 0 auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
 }
-
+.playlist::-webkit-scrollbar {
+    -webkit-appearance: none;
+  width: 20px;
+}
 
 /*@media only screen  and (max-width: 1000px){
     .playlist{
@@ -304,9 +336,11 @@ export default {
 }*/
 
 .playlist .video-item{
-    width: 70px;
+    width: 80px;
     position: relative;
-    height: 50px;
+    height: 75px;
+    float: left;
+    margin-left: 12px;
     
 }
 
@@ -317,33 +351,53 @@ export default {
 .playlist .video-item img:hover{
     cursor: pointer;
 }
-
+.redPlayList {
+    background: red;
+    color: white;
+}
+.greenPlayList {
+    background: green;
+    color: white;
+}
 .playlist .video-item .video-details {
   transition: .5s ease;
-  opacity: 0;
   position: absolute;
+  opacity: 0;
   left: 50%;
-  top: 40%;
+  top: 30%;
   transform: translate(-50%, -50%);
   -ms-transform: translate(-50%, -50%);
   text-align: center;
   width: 100%;
-  height: 80%;
+  height: 61%;
   display: flex;
   align-items: center;
   background: rgba(0,0,0,0.5);
+  z-index: -1;
 }
 
-.playlist .video-item .video-details:hover{
+.playlist .video-item:hover > .video-details{
+    z-index: 0;
     opacity: 1;
-
 }
 
-
+.playlist .video-item .video-playing {
+  transition: .5s ease;
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  text-align: center;
+  width: 100%;
+  height: 61%;
+  display: flex;
+  align-items: center;
+  background: rgb(255, 255, 255, 0.7);
+}
 
 .playlist .video-item .video-details div{
     width: 100%;
-    display: flex;
     justify-content: center;
 }
 .playlist .video-item .video-details div img{
@@ -390,7 +444,10 @@ export default {
     color: #FFF;
 }
 
-
+.timer {
+    position: absolute;
+    top: 89px;
+}
 
 .remove-icon{
     width: 28px;
@@ -399,12 +456,26 @@ export default {
     cursor: pointer;
     position: absolute; 
 }
-
+p.video-title {
+    font-size: 8px;
+    height: 20px;
+    overflow: hidden;
+    color: white;
+    text-align: left;
+    line-height: 10px;
+}
+@media (max-width: 400px){
+    .smallTxt{
+        font-size: 13px;
+    }
+}
 @media (max-width: 900px){
     section{
         padding: 0px;
     }
-
+    .timer {
+        top: 142px;
+    }
     .playlist{
         /* display: flex;
         flex-wrap: wrap;
@@ -415,34 +486,38 @@ export default {
         /* align-items: center; */
         /* flex-direction: row; */
 
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        grid-template-rows: repeat(4, 40px);
+        /* display: grid; */
+        /* grid-template-columns: repeat(4, 1fr); */
         padding: 5px;
+        /* grid-gap: 15px; */
+        padding-right: 30px;
 
     }
-    .video-item{
-        margin-right: 5px;
+    .playlist .video-item{
+        /* margin-right: 5px; */
+        width: 70px ;
+            height: 65px;
     }
     .playlist-highlight .playlist{
-        width: 100%;
         padding: 0px;
         padding-top: 10px;
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(4, 60px);
-        grid-gap: 0px;
+        grid-gap: 10px 0;
         overflow-y: auto;
+        /* padding-left: 25px; */
     }
 
     .playlist-highlight .playlist .video-item{
         width: 80px;
-        padding-left: 20px;
 
     }
-
+    p.video-title {
+    height: 20px;
+    margin-top: -3px;
 }
 
+}
 @media (min-width:901px){
     .playlist-highlight{
         display: none;
@@ -456,7 +531,6 @@ export default {
 }
 
 .playlist-highlight .playlist{
-    width: 100%;
     height: 85%;
 }
 

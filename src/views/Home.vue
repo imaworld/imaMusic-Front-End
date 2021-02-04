@@ -117,7 +117,7 @@ export default {
         let self = this
         axios({
           method: 'post',
-          url: `http://47.75.187.3:8000/featured/`,
+          url: `https://imasparkle.org:8443/featured/`,
           data: '',
           headers:{
             "Authorization" : "Token "+ localStorage.Token
@@ -132,7 +132,7 @@ export default {
 
         axios({
           method: 'post',
-          url: `http://47.75.187.3:8000/channels/`,
+          url: `https://imasparkle.org:8443/channels/`,
           data: '',
           headers:{
             "Authorization" : "Token "+ localStorage.Token
@@ -182,12 +182,12 @@ export default {
 
 section.content{
 	display: grid;
-	grid-template-columns: 5fr 6fr;
+	grid-template-columns: 1fr 0.75fr;
     margin-bottom: 50px;
     margin-top: 10px;
     /*margin-left: 130px;*/
     /* height: 600px; */
-    margin-left: 11%;
+    /* margin-left: 7%; */
     margin-right: 1%;
 }
 
@@ -196,7 +196,8 @@ section.content{
 }
 
 section .v{
-	margin-right: 10px;
+	margin-right: 72px;
+    margin-left: auto;
 	border-radius: 10px;
 	background: #303030;
     width: 420px;
@@ -209,6 +210,7 @@ section .s{
     border-radius: 10px;
     margin-bottom: 30px;
     width: 75%;
+    min-width: 320px;
 }
 
 

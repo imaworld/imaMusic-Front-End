@@ -15,16 +15,13 @@
             <span id="video-stop" class="control" @click="shuffle">
                 <img :src="require('@/assets/icons/shuffle-button.svg')">
             </span>
-            <span id="playlist-save" class="control" @click="savePlaylist">
-                <img :src="playlistButton">
-            </span>
             <span id="video-backward" class="control" @click="$root.$emit('seekBackward')">
                 <img :src="require('@/assets/icons/backward-button.svg')">
             </span>
             <span id="video-prev" class="control" @click="playPrev">
                 <img :src="require('@/assets/icons/previous-button.svg')">
             </span>
-            <span id="video-play" @click="videoPlay">
+            <span id="video-play" @click="play">
                 <img :src="playButton">
             </span>
             <span id="video-next" class="control" @click="playNext">
@@ -57,7 +54,6 @@ Vue.use(VueYoutube)
 
 export default {
 
-
     props: ['source','plStatus'],
     data(){
         return {
@@ -67,22 +63,33 @@ export default {
                 modestbranding: 1,
                 rel: 0,
                 showinfo: 0,
-                fs: 1
+                fs: 0
             },
             isPlaying: false,
             playButton: require('@/assets/icons/play-button.svg'),
             playlistButton: require(`@/assets/icons/save0-button.svg`),
             current_playing: 'My Playlists',
             disabled: false,
+            timerTime: null,
+            timer: null,
+            timeEnd: false,
+            showTimer: false
         }
     },
     methods:{
+        play () {
+            if (!this.timeEnd) {
+                this.videoPlay()
+            }
+        },
         videoPlay(){
-
-            if(!this.isPlaying){
-                this.player.playVideo();
-            }else{
-                this.player.pauseVideo();
+            if (this.source) {
+                localStorage.setItem('playingVideoId', this.source)
+                if(!this.isPlaying){
+                    this.player.playVideo();
+                }else{
+                    this.player.pauseVideo();
+                }
             }
         },
         playing(){
@@ -104,11 +111,11 @@ export default {
             this.isPlaying =  false;
             this.playButton = require('@/assets/icons/play-button.svg')
         },
-        savePlaylist(){
-            if(!this.disabled){
-                this.$root.$emit('savePlaylist');
-            }
-        },
+        // savePlaylist(){
+        //     if(!this.disabled){
+        //         this.$root.$emit('savePlaylist');
+        //     }
+        // },
         ended(){
             this.$root.$emit('playNext');
         },
@@ -134,15 +141,22 @@ export default {
         },
         shuffle(){
             this.$root.$emit('shuffle');
-        }
+        },
+        
     },
     mounted(){
+        this.player.pauseVideo();
         this.$root.$on('playerPlay',()=>{
-            this.player.playVideo()
+                this.player.playVideo()
         });
 
+        this.$root.$on('pauseVideo', ()=> {
+            this.player.pauseVideo();
+        })
 
-
+        this.$root.$on('setTimeEnd', (val) => {
+            this.timeEnd = val
+        })
         this.$root.$on('changePlaylist', (name)=>{
             this.current_playing = name; 
         });
@@ -159,7 +173,19 @@ export default {
     },
     computed: {
         player() {
-          return this.$refs.youtube.player
+            return this.$refs.youtube.player
+        },
+        houre: function() {
+            const houre = Math.floor(this.timerTime / (60 * 60));
+            return this.timerTime >= 0 ? this.padTime(houre) : '00';
+        },
+        minutes: function() {
+            const minutes = Math.floor(this.timerTime / 60) - (this.houre * 60);
+            return this.timerTime >= 0 ? this.padTime(minutes) : '00';
+        },
+        seconds: function() {
+            const seconds = this.timerTime - (this.minutes * 60) - (this.houre * 60 * 60);
+            return this.timerTime >= 0 ? this.padTime(seconds) : '00';
         }
     },
     watch: {
@@ -168,7 +194,16 @@ export default {
             handler (val, oldVal) {
                 this.playlistButton = require(`@/assets/icons/save${val}-button.svg`)
             }
+        },
+        timeEnd (newVal, oldVal) {
+            if (newVal === true) {
+                this.player.pauseVideo();
+            }
+        },
+        source () {
+            localStorage.setItem('playingVideoId', this.source)
         }
+
     }
 };
 </script>
